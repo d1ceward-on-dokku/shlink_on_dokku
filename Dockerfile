@@ -2,11 +2,10 @@ ARG SHLINK_VERSION="4.4.6"
 
 FROM shlinkio/shlink:${SHLINK_VERSION}
 
-COPY ./entrypoint.sh /etc/shlink/entrypoint.sh
-COPY ./run-server.sh /etc/shlink/run-server.sh
+ENV USER_ID='1001'
 
-EXPOSE 80/tcp
+COPY custom-entrypoint.sh custom-entrypoint.
 
-ENTRYPOINT ["/etc/shlink/entrypoint.sh"]
+USER ${USER_ID}
 
-CMD ["/etc/shlink/run-server.sh"]
+ENTRYPOINT ["/bin/sh", "./custom-entrypoint.sh"]

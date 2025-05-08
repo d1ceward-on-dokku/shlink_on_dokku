@@ -3,114 +3,143 @@
 [![Shlink](https://img.shields.io/badge/Shlink-4.4.6-blue.svg)](https://github.com/shlinkio/shlink/releases/tag/v4.4.6)
 [![Dokku](https://img.shields.io/badge/Dokku-Repo-blue.svg)](https://github.com/dokku/dokku)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/d1ceward-on-dokku/shlink_on_dokku/graphs/commit-activity)
+
 # Run Shlink on Dokku
 
-## Perquisites
+## Overview
 
-### What is Shlink?
+This guide explains how to deploy [Shlink](https://shlink.io/), a self-hosted URL shortener, on a [Dokku](http://dokku.viewdocs.io/dokku/) host. Dokku is a lightweight PaaS that simplifies deploying and managing applications using Docker.
 
-[Shlink](https://shlink.io/) is a PHP-based self-hosted URL shortener that can be used to serve shortened URLs under your own domain.
+## Prerequisites
 
-### What is Dokku?
+Before proceeding, ensure you have the following:
 
-[Dokku](http://dokku.viewdocs.io/dokku/) is the smallest PaaS implementation you've ever seen - _Docker
-powered mini-Heroku_.
+- A working [Dokku host](http://dokku.viewdocs.io/dokku/getting-started/installation/).
+- The [PostgreSQL plugin](https://github.com/dokku/dokku-postgres) installed on Dokku.
+- (Optional) The [Let's Encrypt plugin](https://github.com/dokku/dokku-letsencrypt) for SSL certificates.
 
-### Requirements
-* A working [Dokku host](http://dokku.viewdocs.io/dokku/getting-started/installation/)
-* [PostgreSQL](https://github.com/dokku/dokku-postgres) plugin for Dokku
-* [Letsencrypt](https://github.com/dokku/dokku-letsencrypt) plugin for SSL (optionnal)
+## Setup Instructions
 
-# Setup
+### 1. Create the App
 
-**Note:** Throughout this guide, we will use the domain `shlink.example.com` for demonstration purposes. Make sure to replace it with your actual domain name.
-
-## Create the app
-
-Log into your Dokku host and create the Shlink app:
+Log into your Dokku host and create the `shlink` app:
 
 ```bash
 dokku apps:create shlink
 ```
 
-## Configuration
+### 2. Configure the App
 
-### Install, create and link PostgreSQL plugin
+#### Install, Create, and Link PostgreSQL Plugin
 
-```bash
-# Install postgres plugin on Dokku
-dokku plugin:install https://github.com/dokku/dokku-postgres.git postgres
-```
+1. Install the PostgreSQL plugin:
 
-```bash
-# Create running plugin
-dokku postgres:create shlink
-```
+    ```bash
+    dokku plugin:install https://github.com/dokku/dokku-postgres.git postgres
+    ```
 
-```bash
-# Link plugin to the main app
-dokku postgres:link shlink shlink
-```
+2. Create a PostgreSQL service:
 
-### Setting default domain
+    ```bash
+    dokku postgres:create shlink
+    ```
+
+3. Link the PostgreSQL service to the app:
+
+    ```bash
+    dokku postgres:link shlink shlink
+    ```
+
+#### Set the Default Domain
+
+Set the default domain for your Shlink instance:
 
 ```bash
 dokku config:set shlink DEFAULT_DOMAIN=shlink.example.com
 ```
 
-## Domain setup
+### 3. Configure the Domain and Ports
 
-To enable routing for the Shlink app, we need to configure the domain. Execute the following command:
+Set the domain for your app to enable routing:
 
 ```bash
 dokku domains:set shlink shlink.example.com
 ```
 
-## Push Shlink to Dokku
-
-### Grabbing the repository
-
-Begin by cloning this repository onto your local machine.
-
+Map the internal port `8080` to the external port `80`:
 ```bash
-# Via SSH
-git clone git@github.com:d1ceward-on-dokku/shlink_on_dokku.git
-
-# Via HTTPS
-git clone https://github.com/d1ceward-on-dokku/shlink_on_dokku.git
+dokku ports:set shlink http:80:8080
 ```
 
-### Set up git remote
+### 4. Deploy the App
 
-Now, set up your Dokku server as a remote repository.
+You can deploy the app to your Dokku server using one of the following methods:
 
-```bash
-git remote add dokku dokku@example.com:shlink
-```
+#### Option 1: Deploy Using `dokku git:sync`
 
-### Push Shlink
-
-Now, you can push the Shlink app to Dokku. Ensure you have completed this step before moving on to the [next section](#ssl-certificate).
+If your repository is hosted on a remote Git server with an HTTPS URL, you can deploy the app directly to your Dokku server using `dokku git:sync`. This method also triggers a build process automatically. Run the following command:
 
 ```bash
-git push dokku master
+dokku git:sync --build shlink https://github.com/d1ceward-on-dokku/shlink_on_dokku.git
 ```
 
-## SSL certificate
+This will fetch the code from the specified repository, build the app, and deploy it to your Dokku server.
 
-Lastly, let's obtain an SSL certificate from [Let's Encrypt](https://letsencrypt.org/).
+#### Option 2: Clone the Repository and Push Manually
 
-```bash
-# Install letsencrypt plugin
-dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+If you prefer to work with the repository locally, you can clone it to your machine and push it to your Dokku server manually:
 
-# Set certificate contact email
-dokku letsencrypt:set shlink email you@example.com
+1. Clone the repository:
 
-# Generate certificate
-dokku letsencrypt:enable shlink
-```
+    ```bash
+    # Via HTTPS
+    git clone https://github.com/d1ceward-on-dokku/shlink_on_dokku.git
+    ```
 
-## Wrapping up
+2. Add your Dokku server as a Git remote:
 
-Congratulations! Your Shlink instance is now up and running, and you can access it at [https://shlink.example.com](https://shlink.example.com).
+    ```bash
+    git remote add dokku dokku@example.com:shlink
+    ```
+
+3. Push the app to your Dokku server:
+
+    ```bash
+    git push dokku master
+    ```
+
+Choose the method that best suits your workflow.
+
+### 5. Enable SSL (Optional)
+
+Secure your app with an SSL certificate from Let's Encrypt:
+
+1. Add the HTTPS port:
+
+     ```bash
+     dokku ports:add shlink https:443:8080
+     ```
+
+2. Install the Let's Encrypt plugin:
+
+    ```bash
+    dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+    ```
+
+3. Set the contact email for Let's Encrypt:
+
+    ```bash
+    dokku letsencrypt:set shlink email you@example.com
+    ```
+
+4. Enable Let's Encrypt for the app:
+
+    ```bash
+    dokku letsencrypt:enable shlink
+    ```
+
+## Wrapping Up
+
+Congratulations! Your Shlink instance is now up and running. You can access it at [https://shlink.example.com](https://shlink.example.com).
+
+For more information about Shlink, visit the [official documentation](https://shlink.io/documentation/).
