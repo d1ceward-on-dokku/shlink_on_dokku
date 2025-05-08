@@ -4,7 +4,7 @@ FROM shlinkio/shlink:${SHLINK_VERSION}
 
 ENV USER_ID='1001'
 
-COPY custom-entrypoint.sh custom-entrypoint
+COPY custom-entrypoint.sh custom-entrypoint.sh
 
 USER ${USER_ID}
 
